@@ -1,0 +1,304 @@
+.dashboard {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.25rem;
+}
+
+.dashboard h1 {
+  font-size: 20px;
+  margin-bottom: 1.25rem;
+}
+
+.resumen-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 640px) {
+  .resumen-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.resumen-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem;
+}
+
+.resumen-card p:first-child {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.resumen-card p:last-child {
+  font-size: 22px;
+  font-weight: 500;
+}
+
+.resumen-card.positivo p:last-child {
+  color: #1a7a4c;
+}
+.resumen-card.negativo p:last-child {
+  color: var(--danger);
+}
+
+.resumen-card-secundario {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.mep-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 1.25rem;
+  font-size: 13px;
+}
+
+.mep-bar .muted {
+  color: var(--text-secondary);
+}
+
+.filtro-tipos {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.filtro-tipos button {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.filtro-tipos button.activo {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
+}
+
+.orden-controles {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.orden-etiqueta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.orden-controles button {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.orden-controles button.activo {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
+}
+
+.aviso-precios {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+/* --- Tabla desktop --- */
+
+.tabla-especies {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.tabla-especies th {
+  text-align: right;
+  padding: 8px 6px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  border-bottom: 1px solid var(--border);
+}
+
+.tabla-especies th:first-child {
+  text-align: left;
+}
+
+.tabla-especies td {
+  padding: 8px 6px;
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.tabla-especies td:first-child {
+  text-align: left;
+}
+
+.especie-nombre {
+  font-weight: 500;
+}
+
+.info-tooltip-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.info-tooltip-boton {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.ticker-boton {
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
+.info-icono {
+  display: inline-flex;
+  color: var(--text-muted);
+  font-size: 11px;
+  vertical-align: 1px;
+}
+
+.info-tooltip {
+  display: none;
+  position: absolute;
+  z-index: 10;
+  top: 100%;
+  right: 0;
+  margin-top: 6px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  padding: 8px 10px;
+  border-radius: 6px;
+  white-space: normal;
+  text-align: left;
+  width: max-content;
+  max-width: 260px;
+}
+
+.info-tooltip-wrap:hover .info-tooltip,
+.info-tooltip.abierto {
+  display: block;
+}
+
+.tooltip-titulo {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.tooltip-fila {
+  padding: 3px 0;
+}
+
+.tooltip-fila:not(:last-child) {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.tooltip-fila .dato-secundario {
+  font-size: 11px;
+}
+
+.especie-tipo {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.especie-tipo a {
+  color: var(--text-muted);
+}
+
+.badge-stale {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 2px;
+  font-size: 10px;
+  color: #8a5a00;
+  background: #fdf1d8;
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.dato-secundario {
+  color: var(--text-muted);
+}
+
+.positivo {
+  color: #1a7a4c;
+}
+.negativo {
+  color: var(--danger);
+}
+
+.cards-especies {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .tabla-especies {
+    display: none;
+  }
+  .cards-especies {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+.card-especie {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.card-especie-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.card-especie-valores {
+  text-align: right;
+}
+
+.card-especie-precio {
+  font-size: 12px;
+  color: var(--text-secondary);
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  margin-top: 8px;
+}

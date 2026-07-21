@@ -1,0 +1,180 @@
+.caja {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.25rem;
+}
+
+.caja-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.caja-header h1 {
+  font-size: 20px;
+}
+
+.boton-primario {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border: none;
+  font-weight: 500;
+  padding: 8px 14px;
+}
+
+.saldos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 1.25rem;
+}
+
+.saldo-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem;
+}
+
+.saldo-card p:first-child {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.saldo-card p:last-child {
+  font-size: 22px;
+  font-weight: 500;
+}
+
+.filtros {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+/* --- Tabla desktop --- */
+
+.tabla-movimientos {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.tabla-movimientos th {
+  text-align: left;
+  padding: 8px 6px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  border-bottom: 1px solid var(--border);
+}
+
+.tabla-movimientos td {
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.especie-nombre {
+  font-weight: 500;
+}
+
+.especie-tipo {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.chip-tipo-mov {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 9px;
+  border-radius: 999px;
+}
+
+.chip-tipo-mov.deposito {
+  background: rgba(26, 122, 76, 0.15);
+  color: #1a7a4c;
+}
+
+.chip-tipo-mov.extraccion {
+  background: rgba(163, 45, 45, 0.12);
+  color: var(--danger);
+}
+
+.acciones-fila {
+  display: inline-flex;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.acciones-fila button {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-decoration: underline;
+}
+
+.acciones-fila .accion-eliminar {
+  color: var(--danger);
+}
+
+.confirmar-eliminar {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.confirmar-eliminar button {
+  background: none;
+  border: none;
+  padding: 0 4px;
+  font-size: 12px;
+  text-decoration: underline;
+  color: var(--danger);
+}
+
+.confirmar-eliminar button:last-child {
+  color: var(--text-secondary);
+}
+
+.cards-movimientos {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .tabla-movimientos {
+    display: none;
+  }
+  .cards-movimientos {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+.card-movimiento {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.card-movimiento-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.card-movimiento-acciones {
+  margin-top: 8px;
+}

@@ -1,0 +1,175 @@
+.cobros {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.25rem;
+}
+
+.cobros-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.cobros-header h1 {
+  font-size: 20px;
+}
+
+.boton-primario {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border: none;
+  font-weight: 500;
+  padding: 8px 14px;
+}
+
+.filtros {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.filtros-separador {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+/* --- Tabla desktop --- */
+
+.tabla-cobros {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.tabla-cobros th {
+  text-align: left;
+  padding: 8px 6px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  border-bottom: 1px solid var(--border);
+}
+
+.tabla-cobros td {
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.especie-nombre {
+  font-weight: 500;
+}
+
+.especie-tipo {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.chip-tipo-cobro {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text-secondary);
+}
+
+.chip-tipo-cobro.renta {
+  background: rgba(15, 110, 86, 0.12);
+  color: var(--accent);
+}
+
+.chip-tipo-cobro.dividendo {
+  background: rgba(15, 110, 86, 0.12);
+  color: var(--accent);
+}
+
+.chip-tipo-cobro.amortizacion {
+  background: #fdf1d8;
+  color: #8a5a00;
+}
+
+.acciones-fila {
+  display: inline-flex;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.acciones-fila button {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-decoration: underline;
+}
+
+.acciones-fila .accion-eliminar {
+  color: var(--danger);
+}
+
+.confirmar-eliminar {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.confirmar-eliminar button {
+  background: none;
+  border: none;
+  padding: 0 4px;
+  font-size: 12px;
+  text-decoration: underline;
+  color: var(--danger);
+}
+
+.confirmar-eliminar button:last-child {
+  color: var(--text-secondary);
+}
+
+.cards-cobros {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .tabla-cobros {
+    display: none;
+  }
+  .cards-cobros {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+.card-cobro {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.card-cobro-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.card-cobro-monto {
+  font-size: 13px;
+  color: var(--text-secondary);
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+  padding-top: 8px;
+}
+
+.card-cobro-acciones {
+  margin-top: 8px;
+}
