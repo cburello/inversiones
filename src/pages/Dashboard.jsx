@@ -9,7 +9,7 @@ import {
   obtenerTipoCambioHistorico,
 } from '../lib/precios'
 import { calcularPosicion, calcularConsolidado } from '../lib/valuacion'
-import { formatearArs, formatearUsd, formatearPct, formatearFecha, formatearFechaHora } from '../lib/formato'
+import { formatearArs, formatearUsd, formatearPct, formatearFecha, formatearFechaHora, formatearCantidad } from '../lib/formato'
 import './Dashboard.css'
 
 const TOLERANCIA_TENENCIA = 0.0001
@@ -297,7 +297,7 @@ function FilaEspecie({ p }) {
         </div>
         {p.esStale && <div className="badge-stale">precio del {formatearFecha(p.fechaPrecio)}</div>}
       </td>
-      <td>{p.tenencia}</td>
+      <td>{formatearCantidad(p.tenencia)}</td>
       <td>{formatearFecha(p.fechaInversion)}</td>
       <td>
         {p.mantieneAVencimiento ? (
@@ -346,7 +346,7 @@ function CardEspecie({ p }) {
         <div>
           <TickerConDescripcion especie={p.especie} />
           <div className="especie-tipo">
-            {p.especie.tipo} · {p.tenencia} unidades · <Link to={`/especies/${p.especie.id}`}>ver detalle</Link>
+            {p.especie.tipo} · {formatearCantidad(p.tenencia)} unidades · <Link to={`/especies/${p.especie.id}`}>ver detalle</Link>
           </div>
           {p.esStale && <div className="badge-stale">precio del {formatearFecha(p.fechaPrecio)}</div>}
         </div>

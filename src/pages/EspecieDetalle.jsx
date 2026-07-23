@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { obtenerUltimoTipoCambio, obtenerTipoCambioHistorico, obtenerUltimasCotizaciones } from '../lib/precios'
 import { calcularPosicion } from '../lib/valuacion'
-import { formatearArs, formatearUsd, formatearFecha, formatearPct } from '../lib/formato'
+import { formatearArs, formatearUsd, formatearFecha, formatearPct, formatearCantidad } from '../lib/formato'
 import { etiquetaTipo } from '../components/SelectorEspecie'
 import { GraficoPrecio } from '../components/GraficoPrecio'
 import './EspecieDetalle.css'
@@ -95,7 +95,7 @@ export function EspecieDetalle() {
           <div className="especie-detalle-resumen">
             <div>
               <p>Tenencia</p>
-              <p>{posicion.tenencia}</p>
+              <p>{formatearCantidad(posicion.tenencia)}</p>
             </div>
             <div>
               <p>Invertido</p>
@@ -141,7 +141,7 @@ export function EspecieDetalle() {
                     <span className={`chip-tipo ${op.tipo_operacion}`}>{op.tipo_operacion === 'compra' ? 'Compra' : 'Venta'}</span>
                   </td>
                   <td>{formatearFecha(op.fecha)}</td>
-                  <td>{op.cantidad}</td>
+                  <td>{formatearCantidad(op.cantidad)}</td>
                   <td>{op.moneda === 'ARS' ? formatearArs(op.monto) : formatearUsd(op.monto)}</td>
                 </tr>
               ))}

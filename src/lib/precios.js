@@ -4,6 +4,12 @@ import { supabase } from './supabaseClient'
 const DATA912_BASE = 'https://data912.com/live'
 const DOLARAPI_BASE = 'https://dolarapi.com/v1/dolares'
 const ARGENTINADATOS_BOLSA = 'https://api.argentinadatos.com/v1/cotizaciones/dolares/bolsa'
+const ARGENTINADATOS_FCI = 'https://api.argentinadatos.com/v1/finanzas/fci'
+
+// argentinadatos.com espeja los datos oficiales de CAFCI. Un mismo fondo puede
+// estar en cualquiera de estas categorías (ej. los FCI "Mix" suelen aparecer
+// en rentaVariable, no en rentaMixta), por eso se buscan todas a la vez.
+const CATEGORIAS_FCI = ['rentaFija', 'mercadoDinero', 'rentaVariable', 'rentaMixta', 'retornoTotal', 'otros']
 
 // Las ON no se cotizan de forma continua: se mantienen a vencimiento, sin valuación de mercado.
 const ENDPOINT_POR_TIPO = {
@@ -142,45 +148,93 @@ export async function obtenerTodoElMercado() {
   return Object.fromEntries(tipos.map((tipo, i) => [tipo, mapas[i]]))
 }
 
-// Actualiza cotizaciones de data912 para las especies dadas (acciones/cedears/bonos/ONs).
-// Los FCI se cargan a mano y no pasan por acá. Devuelve un reporte con lo actualizado
-// y lo que no tuvo precio disponible; no lanza si data912 falla (usa el cache existente).
+// Catálogo completo de FCI (todas las categorías, datos de CAFCI vía
+// argentinadatos.com), aplanado en una sola lista para buscar por nombre sin
+// que el usuario tenga que saber en qué categoría está su fondo. Se pensó
+// para traerse una sola vez y buscar en memoria (son ~2-3 mil fondos).
+export async function obtenerCatalogoFci() {
+  const listas = await Promise.all(
+    CATEGORIAS_FCI.map((categoria) =>
+      fetchJson(`${ARGENTINADATOS_FCI}/${categoria}/ultimo`).catch(() => [])
+    )
+  )
+  return CATEGORIAS_FCI.flatMap((categoria, i) =>
+    listas[i]
+      .filter((f) => f.vcp != null)
+      .map((f) => ({ fondo: f.fondo, categoria, vcp: f.vcp, fecha: f.fecha }))
+  )
+}
+
+// Actualiza cotizaciones de data912 (acciones/cedears/bonos) y de CAFCI (FCI,
+// vía argentinadatos.com) para las especies dadas. Las FCI se matchean por su
+// nombre oficial exacto (guardado en especies.nombre al crearlas con el
+// buscador). Devuelve un reporte con lo actualizado y lo que no tuvo precio
+// disponible; una fuente que falla no bloquea a la otra.
 export async function actualizarCotizaciones(especies) {
   const actualizadas = []
   const sinPrecio = []
   const errores = []
+  const fecha = hoyISO()
+  const actualizadoEn = new Date().toISOString()
+  const filas = []
 
   const tiposConApi = especies.filter((e) => e.tipo in ENDPOINT_POR_TIPO)
   const endpointsNecesarios = [...new Set(tiposConApi.flatMap((e) => ENDPOINT_POR_TIPO[e.tipo]))]
 
-  let precios
   try {
     const mapas = await Promise.all(endpointsNecesarios.map((ep) => mapaDePrecios([ep])))
-    precios = new Map()
+    const precios = new Map()
     for (const mapa of mapas) for (const [k, v] of mapa) precios.set(k, v)
+
+    for (const especie of tiposConApi) {
+      const precio = precios.get(especie.ticker)
+      if (precio == null) {
+        sinPrecio.push(especie.ticker)
+        continue
+      }
+      filas.push({
+        especie_id: especie.id,
+        fecha,
+        precio,
+        moneda: especie.moneda_cotizacion,
+        fuente: 'data912',
+        actualizado_en: actualizadoEn,
+      })
+      actualizadas.push(especie.ticker)
+    }
   } catch (err) {
     console.error('No se pudieron obtener precios de data912:', err)
-    return { actualizadas, sinPrecio: tiposConApi.map((e) => e.ticker), errores: [String(err)] }
+    errores.push(String(err))
+    sinPrecio.push(...tiposConApi.map((e) => e.ticker))
   }
 
-  const fecha = hoyISO()
-  const actualizadoEn = new Date().toISOString()
-  const filas = []
-  for (const especie of tiposConApi) {
-    const precio = precios.get(especie.ticker)
-    if (precio == null) {
-      sinPrecio.push(especie.ticker)
-      continue
+  const especiesFci = especies.filter((e) => e.tipo === 'fci')
+  if (especiesFci.length) {
+    try {
+      const catalogo = await obtenerCatalogoFci()
+      const porNombre = new Map(catalogo.map((f) => [f.fondo, f]))
+
+      for (const especie of especiesFci) {
+        const fondo = porNombre.get(especie.nombre)
+        if (!fondo) {
+          sinPrecio.push(especie.ticker)
+          continue
+        }
+        filas.push({
+          especie_id: especie.id,
+          fecha,
+          precio: fondo.vcp,
+          moneda: especie.moneda_cotizacion,
+          fuente: 'cafci',
+          actualizado_en: actualizadoEn,
+        })
+        actualizadas.push(especie.ticker)
+      }
+    } catch (err) {
+      console.error('No se pudieron obtener cuotapartes de CAFCI:', err)
+      errores.push(String(err))
+      sinPrecio.push(...especiesFci.map((e) => e.ticker))
     }
-    filas.push({
-      especie_id: especie.id,
-      fecha,
-      precio,
-      moneda: especie.moneda_cotizacion,
-      fuente: 'data912',
-      actualizado_en: actualizadoEn,
-    })
-    actualizadas.push(especie.ticker)
   }
 
   if (filas.length) {

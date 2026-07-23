@@ -132,6 +132,31 @@
   margin-bottom: 4px;
 }
 
+.resultados-fci {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  margin-bottom: 8px;
+}
+
+.resultado-fci {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  font-size: 12px;
+  text-align: left;
+}
+
+.resultado-fci:hover {
+  border-color: var(--accent);
+}
+
 .tipo-toggle {
   display: flex;
   gap: 8px;

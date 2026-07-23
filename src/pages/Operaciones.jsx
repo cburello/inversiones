@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { OperacionForm } from '../components/OperacionForm'
-import { formatearArs, formatearUsd, formatearFecha } from '../lib/formato'
+import { formatearArs, formatearUsd, formatearFecha, formatearCantidad } from '../lib/formato'
 import './Operaciones.css'
 
 const ETIQUETA_TIPO = {
@@ -219,7 +219,7 @@ function FilaOperacion({ op, confirmando, onEditar, onPedirEliminar, onCancelarE
         <span className={`chip-tipo ${op.tipo_operacion}`}>{op.tipo_operacion === 'compra' ? 'Compra' : 'Venta'}</span>
       </td>
       <td>{formatearFecha(op.fecha)}</td>
-      <td>{op.cantidad}</td>
+      <td>{formatearCantidad(op.cantidad)}</td>
       <td>{formatearMonto(op.monto, op.moneda)}</td>
       <td>
         <AccionesFila
@@ -247,7 +247,7 @@ function CardOperacion({ op, confirmando, onEditar, onPedirEliminar, onCancelarE
         <span className={`chip-tipo ${op.tipo_operacion}`}>{op.tipo_operacion === 'compra' ? 'Compra' : 'Venta'}</span>
       </div>
       <div className="card-operacion-monto">
-        {op.cantidad} unidades · {formatearMonto(op.monto, op.moneda)}
+        {formatearCantidad(op.cantidad)} unidades · {formatearMonto(op.monto, op.moneda)}
       </div>
       <div className="card-operacion-acciones">
         <AccionesFila
