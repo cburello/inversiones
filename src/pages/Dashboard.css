@@ -70,6 +70,31 @@
   color: var(--text-secondary);
 }
 
+.filtro-fechas {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 1rem;
+  font-size: 13px;
+}
+
+.filtro-fechas label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+}
+
+.filtro-fechas button {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
 .filtro-tipos {
   display: flex;
   gap: 6px;
@@ -237,6 +262,11 @@
 
 .especie-tipo a {
   color: var(--text-muted);
+}
+
+.cotizacion-info {
+  margin-top: 2px;
+  font-size: 10px;
 }
 
 .badge-stale {

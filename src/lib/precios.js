@@ -119,6 +119,45 @@ export async function obtenerTipoCambioHistorico(fechas) {
   return mapa
 }
 
+// MEP para una fecha "hasta" puntual, buscando hacia atrás si no hay cotización
+// exacta para ese día (fin de semana, feriado, o simplemente no cacheada todavía).
+// Devuelve { fecha, mep, fuente } con la fecha REAL de la cotización encontrada
+// (puede ser anterior a la pedida), o null si no hay ningún dato disponible
+// en o antes de esa fecha.
+export async function obtenerTipoCambioAlaFecha(fecha) {
+  const { data: cacheData, error } = await supabase
+    .from('tipo_cambio')
+    .select('fecha, mep, fuente')
+    .lte('fecha', fecha)
+    .order('fecha', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) throw error
+  if (cacheData?.fecha === fecha) return cacheData
+
+  let mejorArgentinadatos = null
+  try {
+    const serieBolsa = await fetchJson(ARGENTINADATOS_BOLSA)
+    for (const f of serieBolsa) {
+      if (f.fecha <= fecha && (!mejorArgentinadatos || f.fecha > mejorArgentinadatos.fecha)) {
+        mejorArgentinadatos = { fecha: f.fecha, mep: f.venta, fuente: 'argentinadatos' }
+      }
+    }
+  } catch (err) {
+    console.error('No se pudo consultar el histórico de argentinadatos:', err)
+  }
+
+  const candidatos = [cacheData, mejorArgentinadatos].filter((c) => c?.mep != null)
+  if (!candidatos.length) return null
+  const mejor = candidatos.reduce((a, b) => (b.fecha > a.fecha ? b : a))
+
+  if (mejor === mejorArgentinadatos) {
+    const { error: upsertError } = await supabase.from('tipo_cambio').upsert(mejor, { onConflict: 'fecha' })
+    if (upsertError) console.error('No se pudo cachear el MEP histórico:', upsertError)
+  }
+  return mejor
+}
+
 async function mapaDePrecios(endpoints) {
   const mapa = new Map()
   for (const endpoint of endpoints) {
@@ -222,7 +261,10 @@ export async function actualizarCotizaciones(especies) {
         }
         filas.push({
           especie_id: especie.id,
-          fecha,
+          // CAFCI publica la cuotaparte con su propia fecha (puede tener uno o
+          // más días de rezago); usamos esa fecha, no la de hoy, para que "precio
+          // desactualizado" se detecte de verdad cuando CAFCI todavía no actualizó.
+          fecha: fondo.fecha,
           precio: fondo.vcp,
           moneda: especie.moneda_cotizacion,
           fuente: 'cafci',

@@ -30,5 +30,5 @@ export function formatearFecha(fechaISO) {
 
 export function formatearFechaHora(fechaISO) {
   const fecha = new Date(fechaISO)
-  return `${fecha.toLocaleDateString('es-AR')} ${fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}hs`
+  return `${fecha.toLocaleDateString('es-AR')} ${fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false })}hs`
 }

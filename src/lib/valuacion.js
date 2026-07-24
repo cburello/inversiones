@@ -14,7 +14,16 @@ function hoyISO() {
 
 // Las ON se mantienen a vencimiento: no se calcula valuación de mercado ni
 // resultado no realizado, solo tenencia, fecha de inversión y costo.
-export function calcularPosicion({ especie, operaciones, cotizacion, mep, tipoCambioHistorico }) {
+//
+// "hasta": si se pasa, reconstruye la posición tal como estaba en esa fecha
+// (se ignoran las operaciones posteriores). Es una "foto" histórica completa,
+// no un filtro por rango: una compra vieja sigue contando aunque sea anterior
+// a cualquier otro corte, porque las unidades y el costo siguen "puestos"
+// hasta que una venta (posterior) los saca. El "mep" recibido debe ser el
+// correspondiente a esa fecha "hasta" (lo resuelve el caller).
+export function calcularPosicion({ especie, operaciones, cotizacion, mep, tipoCambioHistorico, hasta }) {
+  const operacionesVigentes = hasta ? operaciones.filter((op) => op.fecha <= hasta) : operaciones
+
   let cantidadCompras = 0
   let cantidadVentas = 0
   let costoComprasArs = 0
@@ -22,9 +31,11 @@ export function calcularPosicion({ especie, operaciones, cotizacion, mep, tipoCa
   let fechaInversion = null
   let fechaUltimaOperacion = null
   const detalleInvertido = []
+  const brokers = new Set()
 
-  for (const op of operaciones) {
+  for (const op of operacionesVigentes) {
     if (fechaUltimaOperacion == null || op.fecha > fechaUltimaOperacion) fechaUltimaOperacion = op.fecha
+    if (op.broker) brokers.add(op.broker)
 
     if (op.tipo_operacion !== 'compra') {
       cantidadVentas += op.cantidad
@@ -55,8 +66,12 @@ export function calcularPosicion({ especie, operaciones, cotizacion, mep, tipoCa
 
   const tienePrecio = !mantieneAVencimiento && cotizacion != null
   const precio = tienePrecio ? cotizacion.precio : null
-  const precioArs = !tienePrecio ? null : especie.moneda_cotizacion === 'ARS' ? precio : precio * mep
-  const precioUsd = !tienePrecio ? null : especie.moneda_cotizacion === 'USD' ? precio : precio / mep
+  // El precio "por unidad" real es el crudo dividido por factor_cotizacion
+  // (bonos/ON cotizan cada 100 nominales; CAFCI informa la cuotaparte de FCI
+  // x1000). Sin dividir, "Precio" mostraría el valor de 100 o 1000 unidades.
+  const precioUnitario = tienePrecio ? precio / especie.factor_cotizacion : null
+  const precioArs = !tienePrecio ? null : especie.moneda_cotizacion === 'ARS' ? precioUnitario : precioUnitario * mep
+  const precioUsd = !tienePrecio ? null : especie.moneda_cotizacion === 'USD' ? precioUnitario : precioUnitario / mep
   const valuacionNativa = tienePrecio ? (tenencia * precio) / especie.factor_cotizacion : 0
 
   const valuacionArs = !tienePrecio ? 0 : especie.moneda_cotizacion === 'ARS' ? valuacionNativa : valuacionNativa * mep
@@ -83,6 +98,7 @@ export function calcularPosicion({ especie, operaciones, cotizacion, mep, tipoCa
     fechaInversion,
     fechaUltimaOperacion,
     detalleInvertido,
+    brokers: [...brokers].sort(),
     valuacionArs,
     valuacionUsd,
     resultadoArs,

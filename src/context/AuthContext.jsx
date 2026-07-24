@@ -3,6 +3,9 @@ import { supabase } from '../lib/supabaseClient'
 
 const AuthContext = createContext(null)
 
+const INACTIVIDAD_MS = 3 * 60 * 1000
+const EVENTOS_ACTIVIDAD = ['mousedown', 'keydown', 'scroll', 'touchstart']
+
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -19,6 +22,26 @@ export function AuthProvider({ children }) {
 
     return () => listener.subscription.unsubscribe()
   }, [])
+
+  // Desloguea automáticamente después de un minuto sin actividad del usuario
+  // (sin clicks, teclas, scroll ni touch), para no dejar la sesión abierta.
+  useEffect(() => {
+    if (!session) return
+
+    let timeoutId
+    function reiniciarTimer() {
+      clearTimeout(timeoutId)
+      timeoutId = setTimeout(() => supabase.auth.signOut(), INACTIVIDAD_MS)
+    }
+
+    EVENTOS_ACTIVIDAD.forEach((evento) => window.addEventListener(evento, reiniciarTimer))
+    reiniciarTimer()
+
+    return () => {
+      clearTimeout(timeoutId)
+      EVENTOS_ACTIVIDAD.forEach((evento) => window.removeEventListener(evento, reiniciarTimer))
+    }
+  }, [session])
 
   const value = {
     session,

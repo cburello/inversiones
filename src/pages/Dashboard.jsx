@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import {
@@ -7,6 +7,7 @@ import {
   obtenerUltimasCotizaciones,
   obtenerUltimoTipoCambio,
   obtenerTipoCambioHistorico,
+  obtenerTipoCambioAlaFecha,
 } from '../lib/precios'
 import { calcularPosicion, calcularConsolidado } from '../lib/valuacion'
 import { formatearArs, formatearUsd, formatearPct, formatearFecha, formatearFechaHora, formatearCantidad } from '../lib/formato'
@@ -24,15 +25,44 @@ const ETIQUETA_TIPO = {
 
 export function Dashboard() {
   const [estado, setEstado] = useState({ cargando: true, error: null })
-  const [posiciones, setPosiciones] = useState([])
+  const [especies, setEspecies] = useState([])
   const [operaciones, setOperaciones] = useState([])
-  const [tipoCambio, setTipoCambio] = useState(null)
+  const [cotizaciones, setCotizaciones] = useState(new Map())
+  const [tipoCambioHistorico, setTipoCambioHistorico] = useState(new Map())
+  const [ultimoTipoCambio, setUltimoTipoCambio] = useState(null)
   const [filtroTipo, setFiltroTipo] = useState('todas')
+  const [filtroHasta, setFiltroHasta] = useState('')
+  const [mepHasta, setMepHasta] = useState(null)
+  const [buscandoMepHasta, setBuscandoMepHasta] = useState(false)
   const [orden, setOrden] = useState({ campo: 'valuacion', asc: false })
 
   useEffect(() => {
     cargar()
   }, [])
+
+  // Cuando se fija "Hasta", buscamos el MEP correspondiente a esa fecha (o la
+  // cotización cacheada más próxima hacia atrás si no hay una exacta).
+  useEffect(() => {
+    if (!filtroHasta) {
+      setMepHasta(null)
+      return
+    }
+    let cancelado = false
+    setBuscandoMepHasta(true)
+    obtenerTipoCambioAlaFecha(filtroHasta)
+      .then((resultado) => {
+        if (!cancelado) setMepHasta(resultado)
+      })
+      .catch(() => {
+        if (!cancelado) setMepHasta(null)
+      })
+      .finally(() => {
+        if (!cancelado) setBuscandoMepHasta(false)
+      })
+    return () => {
+      cancelado = true
+    }
+  }, [filtroHasta])
 
   async function cargar() {
     setEstado({ cargando: true, error: null })
@@ -47,7 +77,7 @@ export function Dashboard() {
       await Promise.allSettled([actualizarTipoCambio(), actualizarCotizaciones(especies)])
 
       const fechasOperaciones = operaciones.map((o) => o.fecha)
-      const [cotizaciones, ultimoTipoCambio, tipoCambioHistorico] = await Promise.all([
+      const [cotizacionesMap, ultimoTipoCambio, tipoCambioHistoricoMap] = await Promise.all([
         obtenerUltimasCotizaciones(especieIds),
         obtenerUltimoTipoCambio(),
         obtenerTipoCambioHistorico(fechasOperaciones),
@@ -58,34 +88,48 @@ export function Dashboard() {
         return
       }
 
-      const operacionesPorEspecie = new Map()
-      for (const op of operaciones) {
-        if (!operacionesPorEspecie.has(op.especie_id)) operacionesPorEspecie.set(op.especie_id, [])
-        operacionesPorEspecie.get(op.especie_id).push(op)
-      }
-
-      const todasLasPosiciones = especies.map((especie) =>
-        calcularPosicion({
-          especie,
-          operaciones: operacionesPorEspecie.get(especie.id) ?? [],
-          cotizacion: cotizaciones.get(especie.id) ?? null,
-          mep: ultimoTipoCambio.mep,
-          tipoCambioHistorico,
-        })
-      )
-
-      // tenencia negativa = datos incompletos (ventas sin la compra correspondiente
-      // en la planilla original); no es una posición real, se excluye.
-      const posicionesVigentes = todasLasPosiciones.filter((p) => p.tenencia > TOLERANCIA_TENENCIA)
-
-      setPosiciones(posicionesVigentes)
+      setEspecies(especies)
       setOperaciones(operaciones)
-      setTipoCambio(ultimoTipoCambio)
+      setCotizaciones(cotizacionesMap)
+      setTipoCambioHistorico(tipoCambioHistoricoMap)
+      setUltimoTipoCambio(ultimoTipoCambio)
       setEstado({ cargando: false, error: null })
     } catch (err) {
       setEstado({ cargando: false, error: err.message })
     }
   }
+
+  // MEP a usar para valuación/conversión: el de "hasta" si hay filtro (una vez
+  // resuelta la búsqueda), o el de hoy si no hay filtro de fecha.
+  const mepAUsar = filtroHasta ? mepHasta?.mep ?? null : ultimoTipoCambio?.mep ?? null
+
+  const operacionesPorEspecie = useMemo(() => {
+    const mapa = new Map()
+    for (const op of operaciones) {
+      if (!mapa.has(op.especie_id)) mapa.set(op.especie_id, [])
+      mapa.get(op.especie_id).push(op)
+    }
+    return mapa
+  }, [operaciones])
+
+  const posiciones = useMemo(() => {
+    if (mepAUsar == null) return []
+
+    const todasLasPosiciones = especies.map((especie) =>
+      calcularPosicion({
+        especie,
+        operaciones: operacionesPorEspecie.get(especie.id) ?? [],
+        cotizacion: cotizaciones.get(especie.id) ?? null,
+        mep: mepAUsar,
+        tipoCambioHistorico,
+        hasta: filtroHasta || null,
+      })
+    )
+
+    // tenencia negativa = datos incompletos (ventas sin la compra correspondiente
+    // en la planilla original); no es una posición real, se excluye.
+    return todasLasPosiciones.filter((p) => p.tenencia > TOLERANCIA_TENENCIA)
+  }, [especies, operacionesPorEspecie, cotizaciones, tipoCambioHistorico, mepAUsar, filtroHasta])
 
   function cambiarOrden(campo) {
     setOrden((actual) =>
@@ -125,7 +169,9 @@ export function Dashboard() {
   const consolidado = calcularConsolidado(posicionesFiltradas)
 
   const especieIdsFiltrados = new Set(posicionesFiltradas.map((p) => p.especie.id))
-  const operacionesFiltradas = operaciones.filter((o) => especieIdsFiltrados.has(o.especie_id))
+  const operacionesFiltradas = operaciones.filter(
+    (o) => especieIdsFiltrados.has(o.especie_id) && (!filtroHasta || o.fecha <= filtroHasta)
+  )
 
   const timestampsCotizaciones = posiciones.filter((p) => p.precioActualizadoEn).map((p) => p.precioActualizadoEn)
   const cotizacionMasReciente = timestampsCotizaciones.length
@@ -136,98 +182,129 @@ export function Dashboard() {
     <div className="dashboard">
       <h1>Cartera de inversiones</h1>
 
-      <div className="resumen-grid">
-        <div className="resumen-card">
-          <p>Valuación total ARS</p>
-          <p>{formatearArs(consolidado.valuacionArs)}</p>
-        </div>
-        <div className="resumen-card">
-          <p>Valuación total USD MEP</p>
-          <p>{formatearUsd(consolidado.valuacionUsd)}</p>
-        </div>
-        <div className={`resumen-card ${consolidado.resultadoUsd >= 0 ? 'positivo' : 'negativo'}`}>
-          <p>Resultado consolidado</p>
-          <p>
-            {formatearUsd(consolidado.resultadoUsd)} ({formatearPct(consolidado.resultadoPct)})
-          </p>
-        </div>
-        <div className="resumen-card">
-          <p>Monto invertido</p>
-          <p>
-            {formatearArs(consolidado.costoArs)}
-            <span className="resumen-card-secundario"> · {formatearUsd(consolidado.costoUsd)}</span>
-          </p>
-        </div>
+      <div className="filtro-fechas">
+        <label>
+          Ver cartera al día
+          <input type="date" value={filtroHasta} onChange={(e) => setFiltroHasta(e.target.value)} />
+        </label>
+        {filtroHasta && <button onClick={() => setFiltroHasta('')}>Volver a hoy</button>}
       </div>
 
-      <div className="mep-bar">
-        <span>
-          Dólar MEP usado: <strong>{formatearArs(tipoCambio.mep)}</strong>
-        </span>
-        <span className="muted">· actualizado {formatearFechaHora(tipoCambio.actualizado_en ?? tipoCambio.fecha)}</span>
-        <span className="muted">
-          · {operacionesFiltradas.length} operaciones / {posicionesFiltradas.length} especies
-          {filtroTipo !== 'todas' ? ` (${ETIQUETA_TIPO[filtroTipo] ?? filtroTipo})` : ''}
-        </span>
-        {cotizacionMasReciente && (
-          <span className="muted">· cotizaciones actualizadas {formatearFechaHora(cotizacionMasReciente)}</span>
-        )}
-      </div>
+      {filtroHasta && buscandoMepHasta && <p className="muted">Buscando el MEP del {formatearFecha(filtroHasta)}...</p>}
+      {filtroHasta && !buscandoMepHasta && mepAUsar == null && (
+        <p className="negativo">No se encontró cotización MEP en o antes del {formatearFecha(filtroHasta)}.</p>
+      )}
 
-      {posiciones.length === 0 && <p>Todavía no tenés posiciones vigentes.</p>}
-
-      {posiciones.length > 0 && (
+      {mepAUsar != null && (
         <>
-          <div className="filtro-tipos">
-            <button className={filtroTipo === 'todas' ? 'activo' : ''} onClick={() => setFiltroTipo('todas')}>
-              Todas
-            </button>
-            {tiposDisponibles.map((tipo) => (
-              <button key={tipo} className={filtroTipo === tipo ? 'activo' : ''} onClick={() => setFiltroTipo(tipo)}>
-                {ETIQUETA_TIPO[tipo] ?? tipo}
-              </button>
-            ))}
+          <div className="resumen-grid">
+            <div className="resumen-card">
+              <p>Valuación total ARS</p>
+              <p>{formatearArs(consolidado.valuacionArs)}</p>
+            </div>
+            <div className="resumen-card">
+              <p>Valuación total USD MEP</p>
+              <p>{formatearUsd(consolidado.valuacionUsd)}</p>
+            </div>
+            <div className={`resumen-card ${consolidado.resultadoUsd >= 0 ? 'positivo' : 'negativo'}`}>
+              <p>Resultado consolidado</p>
+              <p>
+                {formatearUsd(consolidado.resultadoUsd)} ({formatearPct(consolidado.resultadoPct)})
+              </p>
+            </div>
+            <div className="resumen-card">
+              <p>Monto invertido</p>
+              <p>
+                {formatearArs(consolidado.costoArs)}
+                <span className="resumen-card-secundario"> · {formatearUsd(consolidado.costoUsd)}</span>
+              </p>
+            </div>
           </div>
 
-          <div className="orden-controles">
-            <span className="orden-etiqueta">Ordenar por:</span>
-            <BotonOrden campo="valuacion" ordenActual={orden} onClick={cambiarOrden}>
-              Valuación
-            </BotonOrden>
-            <BotonOrden campo="ticker" ordenActual={orden} onClick={cambiarOrden}>
-              Ticker
-            </BotonOrden>
-            <BotonOrden campo="fecha" ordenActual={orden} onClick={cambiarOrden}>
-              Última operación
-            </BotonOrden>
+          <div className="mep-bar">
+            <span>
+              Dólar MEP usado: <strong>{formatearArs(mepAUsar)}</strong>
+            </span>
+            {filtroHasta ? (
+              <span className="muted">
+                · cotización del {formatearFecha(mepHasta.fecha)}
+                {mepHasta.fecha !== filtroHasta ? ' (más próxima encontrada hacia atrás)' : ''}
+              </span>
+            ) : (
+              <span className="muted">
+                · actualizado {formatearFechaHora(ultimoTipoCambio.actualizado_en ?? ultimoTipoCambio.fecha)}
+              </span>
+            )}
+            <span className="muted">
+              · {operacionesFiltradas.length} operaciones / {posicionesFiltradas.length} especies
+              {filtroTipo !== 'todas' ? ` (${ETIQUETA_TIPO[filtroTipo] ?? filtroTipo})` : ''}
+            </span>
+            {cotizacionMasReciente && (
+              <span className="muted">· cotizaciones actualizadas {formatearFechaHora(cotizacionMasReciente)}</span>
+            )}
+            {filtroHasta && (
+              <span className="muted">· precio de mercado: el último disponible (sin histórico por fecha)</span>
+            )}
           </div>
 
-          <div className="tabla-wrapper">
-            <table className="tabla-especies">
-              <thead>
-                <tr>
-                  <th>Especie</th>
-                  <th>Tenencia</th>
-                  <th>Fecha inversión</th>
-                  <th>Precio</th>
-                  <th>Invertido</th>
-                  <th>Valuación</th>
-                  <th>Resultado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {posicionesFiltradas.map((p) => (
-                  <FilaEspecie key={p.especie.id} p={p} />
+          {posiciones.length === 0 && (
+            <p>Todavía no tenés posiciones vigentes{filtroHasta ? ` al ${formatearFecha(filtroHasta)}` : ''}.</p>
+          )}
+
+          {posiciones.length > 0 && (
+            <>
+              <div className="filtro-tipos">
+                <button className={filtroTipo === 'todas' ? 'activo' : ''} onClick={() => setFiltroTipo('todas')}>
+                  Todas
+                </button>
+                {tiposDisponibles.map((tipo) => (
+                  <button key={tipo} className={filtroTipo === tipo ? 'activo' : ''} onClick={() => setFiltroTipo(tipo)}>
+                    {ETIQUETA_TIPO[tipo] ?? tipo}
+                  </button>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </div>
 
-          <div className="cards-especies">
-            {posicionesFiltradas.map((p) => (
-              <CardEspecie key={p.especie.id} p={p} />
-            ))}
-          </div>
+              <div className="orden-controles">
+                <span className="orden-etiqueta">Ordenar por:</span>
+                <BotonOrden campo="valuacion" ordenActual={orden} onClick={cambiarOrden}>
+                  Valuación
+                </BotonOrden>
+                <BotonOrden campo="ticker" ordenActual={orden} onClick={cambiarOrden}>
+                  Ticker
+                </BotonOrden>
+                <BotonOrden campo="fecha" ordenActual={orden} onClick={cambiarOrden}>
+                  Última operación
+                </BotonOrden>
+              </div>
+
+              <div className="tabla-wrapper">
+                <table className="tabla-especies">
+                  <thead>
+                    <tr>
+                      <th>Especie</th>
+                      <th>Tenencia</th>
+                      <th>Fecha inversión</th>
+                      <th>Precio</th>
+                      <th>Invertido</th>
+                      <th>Valuación</th>
+                      <th>Resultado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {posicionesFiltradas.map((p) => (
+                      <FilaEspecie key={p.especie.id} p={p} />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="cards-especies">
+                {posicionesFiltradas.map((p) => (
+                  <CardEspecie key={p.especie.id} p={p} />
+                ))}
+              </div>
+            </>
+          )}
         </>
       )}
     </div>
@@ -287,6 +364,15 @@ function DetalleInvertido({ p }) {
   )
 }
 
+// Fecha y hora de la cotización de cada especie: si está vieja se resalta
+// (fecha real de CAFCI/data912); si es de hoy, solo la hora en que se consultó.
+function InfoPrecio({ p }) {
+  if (!p.tienePrecio) return null
+  if (p.esStale) return <div className="badge-stale">precio del {formatearFecha(p.fechaPrecio)}</div>
+  if (!p.precioActualizadoEn) return null
+  return <div className="dato-secundario cotizacion-info">al {formatearFechaHora(p.precioActualizadoEn)}</div>
+}
+
 function FilaEspecie({ p }) {
   return (
     <tr>
@@ -295,7 +381,7 @@ function FilaEspecie({ p }) {
         <div className="especie-tipo">
           {p.especie.tipo} · <Link to={`/especies/${p.especie.id}`}>ver detalle</Link>
         </div>
-        {p.esStale && <div className="badge-stale">precio del {formatearFecha(p.fechaPrecio)}</div>}
+        {p.brokers.length > 0 && <div className="dato-secundario cotizacion-info">{p.brokers.join(', ')}</div>}
       </td>
       <td>{formatearCantidad(p.tenencia)}</td>
       <td>{formatearFecha(p.fechaInversion)}</td>
@@ -306,6 +392,7 @@ function FilaEspecie({ p }) {
           <>
             <div>{formatearArs(p.precioArs)}</div>
             <div className="dato-secundario">{formatearUsd(p.precioUsd)}</div>
+            <InfoPrecio p={p} />
           </>
         ) : (
           'sin cotización'
@@ -348,7 +435,6 @@ function CardEspecie({ p }) {
           <div className="especie-tipo">
             {p.especie.tipo} · {formatearCantidad(p.tenencia)} unidades · <Link to={`/especies/${p.especie.id}`}>ver detalle</Link>
           </div>
-          {p.esStale && <div className="badge-stale">precio del {formatearFecha(p.fechaPrecio)}</div>}
         </div>
         <div className="card-especie-valores">
           {p.mantieneAVencimiento ? (
@@ -366,11 +452,13 @@ function CardEspecie({ p }) {
       </div>
       <div className="card-especie-precio">
         Precio: {p.mantieneAVencimiento ? 'sin valuación de mercado' : p.tienePrecio ? `${formatearArs(p.precioArs)} · ${formatearUsd(p.precioUsd)}` : 'sin cotización'}
+        <InfoPrecio p={p} />
       </div>
       <div className="card-especie-precio">
         Invertido: {formatearArs(p.costoArs)} · {formatearUsd(p.costoUsd)} ({formatearFecha(p.fechaInversion)}){' '}
         <DetalleInvertido p={p} />
       </div>
+      {p.brokers.length > 0 && <div className="card-especie-precio">Broker: {p.brokers.join(', ')}</div>}
     </div>
   )
 }
