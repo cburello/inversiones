@@ -1,0 +1,65 @@
+.cambiar-contrasena {
+  max-width: 360px;
+  margin: 0 auto;
+  padding: 1.25rem;
+}
+
+.volver-link {
+  display: inline-block;
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  margin-bottom: 1rem;
+}
+
+.cambiar-contrasena h1 {
+  font-size: 20px;
+  margin-bottom: 1.25rem;
+}
+
+.cambiar-contrasena-form {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cambiar-contrasena-form label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.cambiar-contrasena-form input {
+  margin-bottom: 12px;
+}
+
+.cc-submit {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border: none;
+  font-weight: 500;
+  padding: 10px;
+}
+
+.cc-error {
+  font-size: 13px;
+  color: var(--danger);
+  background: var(--danger-bg);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+}
+
+.cc-ok {
+  font-size: 13px;
+  color: var(--accent);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+}

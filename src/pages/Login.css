@@ -105,3 +105,12 @@
   padding: 8px 10px;
   margin-bottom: 12px;
 }
+
+.login-volver {
+  display: block;
+  text-align: center;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-decoration: none;
+}

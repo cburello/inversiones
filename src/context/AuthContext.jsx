@@ -52,6 +52,15 @@ export function AuthProvider({ children }) {
     signUp: (email, password) =>
       supabase.auth.signUp({ email, password }),
     signOut: () => supabase.auth.signOut(),
+    // Envía el mail con el link para elegir una contraseña nueva (usuario deslogueado).
+    enviarRecuperacion: (email) =>
+      supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/restablecer-contrasena`,
+      }),
+    // Cambia la contraseña de la sesión actual: sirve tanto para el usuario ya
+    // logueado (cambiar contraseña desde la app) como para la sesión temporal
+    // que Supabase crea al entrar desde el link de recuperación.
+    cambiarPassword: (password) => supabase.auth.updateUser({ password }),
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

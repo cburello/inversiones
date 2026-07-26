@@ -26,9 +26,14 @@ export function AppLayout() {
             Caja
           </NavLink>
         </nav>
-        <button className="app-nav-salir" onClick={signOut}>
-          Cerrar sesión ({user?.email})
-        </button>
+        <div className="app-nav-usuario">
+          <NavLink to="/cambiar-contrasena" className={activo}>
+            Cambiar contraseña
+          </NavLink>
+          <button className="app-nav-salir" onClick={signOut}>
+            Cerrar sesión ({user?.email})
+          </button>
+        </div>
       </header>
 
       <main className="app-main">
@@ -55,6 +60,9 @@ export function AppLayout() {
           <div className="mas-hoja" onClick={(e) => e.stopPropagation()}>
             <NavLink to="/cobros" onClick={() => setMasAbierto(false)}>
               Cobros
+            </NavLink>
+            <NavLink to="/cambiar-contrasena" onClick={() => setMasAbierto(false)}>
+              Cambiar contraseña
             </NavLink>
             <button
               onClick={() => {

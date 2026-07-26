@@ -4,12 +4,13 @@ import { supabase } from './supabaseClient'
 const DATA912_BASE = 'https://data912.com/live'
 const DOLARAPI_BASE = 'https://dolarapi.com/v1/dolares'
 const ARGENTINADATOS_BOLSA = 'https://api.argentinadatos.com/v1/cotizaciones/dolares/bolsa'
-const ARGENTINADATOS_FCI = 'https://api.argentinadatos.com/v1/finanzas/fci'
-
-// argentinadatos.com espeja los datos oficiales de CAFCI. Un mismo fondo puede
-// estar en cualquiera de estas categorías (ej. los FCI "Mix" suelen aparecer
-// en rentaVariable, no en rentaMixta), por eso se buscan todas a la vez.
-const CATEGORIAS_FCI = ['rentaFija', 'mercadoDinero', 'rentaVariable', 'rentaMixta', 'retornoTotal', 'otros']
+// "fondos" (todos los fondos con su último valor) está mucho más al día que los
+// endpoints por categoría (.../rentaVariable/ultimo, etc.): estos últimos quedaron
+// pisados varios días desde el vencimiento de esta app, mientras que "fondos" ya
+// reflejaba el cierre del último día hábil. Es un solo pedido pesado (~8MB, ~4700
+// fondos) en vez de 6 livianos, pero es la única fuente fresca que ofrece
+// argentinadatos para esto.
+const ARGENTINADATOS_FCI_FONDOS = 'https://api.argentinadatos.com/v1/finanzas/fci/fondos'
 
 // Las ON no se cotizan de forma continua: se mantienen a vencimiento, sin valuación de mercado.
 const ENDPOINT_POR_TIPO = {
@@ -187,21 +188,14 @@ export async function obtenerTodoElMercado() {
   return Object.fromEntries(tipos.map((tipo, i) => [tipo, mapas[i]]))
 }
 
-// Catálogo completo de FCI (todas las categorías, datos de CAFCI vía
-// argentinadatos.com), aplanado en una sola lista para buscar por nombre sin
-// que el usuario tenga que saber en qué categoría está su fondo. Se pensó
-// para traerse una sola vez y buscar en memoria (son ~2-3 mil fondos).
+// Catálogo completo de FCI (datos de CAFCI vía argentinadatos.com), aplanado
+// en una sola lista para buscar por nombre. Se pensó para traerse una sola
+// vez y buscar en memoria (son ~4700 fondos/clases).
 export async function obtenerCatalogoFci() {
-  const listas = await Promise.all(
-    CATEGORIAS_FCI.map((categoria) =>
-      fetchJson(`${ARGENTINADATOS_FCI}/${categoria}/ultimo`).catch(() => [])
-    )
-  )
-  return CATEGORIAS_FCI.flatMap((categoria, i) =>
-    listas[i]
-      .filter((f) => f.vcp != null)
-      .map((f) => ({ fondo: f.fondo, categoria, vcp: f.vcp, fecha: f.fecha }))
-  )
+  const { fondos } = await fetchJson(ARGENTINADATOS_FCI_FONDOS)
+  return fondos
+    .filter((f) => f.rendimientos?.valorCuotaparte != null)
+    .map((f) => ({ fondo: f.nombre, categoria: f.tipoRenta, vcp: f.rendimientos.valorCuotaparte, fecha: f.fecha }))
 }
 
 // Actualiza cotizaciones de data912 (acciones/cedears/bonos) y de CAFCI (FCI,

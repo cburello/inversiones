@@ -10,7 +10,16 @@ import {
   obtenerTipoCambioAlaFecha,
 } from '../lib/precios'
 import { calcularPosicion, calcularConsolidado } from '../lib/valuacion'
-import { formatearArs, formatearUsd, formatearPct, formatearFecha, formatearFechaHora, formatearCantidad } from '../lib/formato'
+import {
+  formatearArs,
+  formatearUsd,
+  formatearArsFci,
+  formatearUsdFci,
+  formatearPct,
+  formatearFecha,
+  formatearFechaHora,
+  formatearCantidad,
+} from '../lib/formato'
 import './Dashboard.css'
 
 const TOLERANCIA_TENENCIA = 0.0001
@@ -390,8 +399,10 @@ function FilaEspecie({ p }) {
           <span className="dato-secundario">a vencimiento</span>
         ) : p.tienePrecio ? (
           <>
-            <div>{formatearArs(p.precioArs)}</div>
-            <div className="dato-secundario">{formatearUsd(p.precioUsd)}</div>
+            <div>{p.especie.tipo === 'fci' ? formatearArsFci(p.precioArs) : formatearArs(p.precioArs)}</div>
+            <div className="dato-secundario">
+              {p.especie.tipo === 'fci' ? formatearUsdFci(p.precioUsd) : formatearUsd(p.precioUsd)}
+            </div>
             <InfoPrecio p={p} />
           </>
         ) : (
@@ -451,7 +462,14 @@ function CardEspecie({ p }) {
         </div>
       </div>
       <div className="card-especie-precio">
-        Precio: {p.mantieneAVencimiento ? 'sin valuación de mercado' : p.tienePrecio ? `${formatearArs(p.precioArs)} · ${formatearUsd(p.precioUsd)}` : 'sin cotización'}
+        Precio:{' '}
+        {p.mantieneAVencimiento
+          ? 'sin valuación de mercado'
+          : p.tienePrecio
+            ? p.especie.tipo === 'fci'
+              ? `${formatearArsFci(p.precioArs)} · ${formatearUsdFci(p.precioUsd)}`
+              : `${formatearArs(p.precioArs)} · ${formatearUsd(p.precioUsd)}`
+            : 'sin cotización'}
         <InfoPrecio p={p} />
       </div>
       <div className="card-especie-precio">

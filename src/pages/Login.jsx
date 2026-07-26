@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { CampoPassword } from '../components/CampoPassword'
 import './Login.css'
 
 const MENSAJES_ERROR = {
@@ -18,6 +19,7 @@ export function Login() {
   const [modo, setModo] = useState('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmacion, setConfirmacion] = useState('')
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -31,6 +33,7 @@ export function Login() {
 
   function cambiarModo(nuevoModo) {
     setModo(nuevoModo)
+    setConfirmacion('')
     setError('')
     setInfo('')
   }
@@ -39,6 +42,12 @@ export function Login() {
     e.preventDefault()
     setError('')
     setInfo('')
+
+    if (modo === 'signup' && password !== confirmacion) {
+      setError('Las contraseñas no coinciden.')
+      return
+    }
+
     setEnviando(true)
 
     const { data, error: authError } =
@@ -104,11 +113,9 @@ export function Login() {
             <label className="login-field" htmlFor="password">
               Contraseña
             </label>
-            <input
+            <CampoPassword
               id="password"
-              type="password"
               className="login-input"
-              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete={modo === 'login' ? 'current-password' : 'new-password'}
@@ -116,10 +123,33 @@ export function Login() {
               minLength={6}
             />
 
+            {modo === 'signup' && (
+              <>
+                <label className="login-field" htmlFor="confirmacion">
+                  Repetir contraseña
+                </label>
+                <CampoPassword
+                  id="confirmacion"
+                  className="login-input"
+                  value={confirmacion}
+                  onChange={(e) => setConfirmacion(e.target.value)}
+                  autoComplete="new-password"
+                  required
+                  minLength={6}
+                />
+              </>
+            )}
+
             <button type="submit" className="login-submit" disabled={enviando}>
               {enviando ? 'Enviando...' : modo === 'login' ? 'Ingresar' : 'Crear cuenta'}
             </button>
           </form>
+
+          {modo === 'login' && (
+            <Link to="/olvide-contrasena" className="login-volver">
+              ¿Olvidaste tu contraseña?
+            </Link>
+          )}
         </div>
       </div>
     </div>
