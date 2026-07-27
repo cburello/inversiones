@@ -23,23 +23,39 @@ export function AuthProvider({ children }) {
     return () => listener.subscription.unsubscribe()
   }, [])
 
-  // Desloguea automáticamente después de un minuto sin actividad del usuario
-  // (sin clicks, teclas, scroll ni touch), para no dejar la sesión abierta.
+  // Desloguea automáticamente tras un rato sin actividad del usuario (sin
+  // clicks, teclas, scroll ni touch). Se basa en la hora real (Date.now()) en
+  // vez de confiar solo en que el setTimeout siga corriendo: en el celular,
+  // el navegador suspende los timers cuando se apaga la pantalla o se cambia
+  // de app, así que un setTimeout solo nunca llega a dispararse mientras está
+  // en segundo plano. El chequeo en "visibilitychange" recalcula el tiempo
+  // real transcurrido apenas volvés a la app, sin importar cuánto estuvo pausado.
   useEffect(() => {
     if (!session) return
 
-    let timeoutId
-    function reiniciarTimer() {
-      clearTimeout(timeoutId)
-      timeoutId = setTimeout(() => supabase.auth.signOut(), INACTIVIDAD_MS)
+    let ultimaActividad = Date.now()
+    let intervalId
+
+    function registrarActividad() {
+      ultimaActividad = Date.now()
     }
 
-    EVENTOS_ACTIVIDAD.forEach((evento) => window.addEventListener(evento, reiniciarTimer))
-    reiniciarTimer()
+    function chequearInactividad() {
+      if (Date.now() - ultimaActividad >= INACTIVIDAD_MS) supabase.auth.signOut()
+    }
+
+    function alCambiarVisibilidad() {
+      if (document.visibilityState === 'visible') chequearInactividad()
+    }
+
+    EVENTOS_ACTIVIDAD.forEach((evento) => window.addEventListener(evento, registrarActividad))
+    document.addEventListener('visibilitychange', alCambiarVisibilidad)
+    intervalId = setInterval(chequearInactividad, 10 * 1000)
 
     return () => {
-      clearTimeout(timeoutId)
-      EVENTOS_ACTIVIDAD.forEach((evento) => window.removeEventListener(evento, reiniciarTimer))
+      clearInterval(intervalId)
+      EVENTOS_ACTIVIDAD.forEach((evento) => window.removeEventListener(evento, registrarActividad))
+      document.removeEventListener('visibilitychange', alCambiarVisibilidad)
     }
   }, [session])
 
