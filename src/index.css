@@ -3,6 +3,7 @@
   --text-secondary: #6b6763;
   --bg: #f7f6f3;
   --surface: #fff;
+  --input-bg: #fff;
   --border: #e2e0da;
   --accent: #0f6e56;
   --accent-contrast: #fff;
@@ -16,17 +17,21 @@
   -webkit-font-smoothing: antialiased;
 }
 
+/* Paleta oscura "cálida": tonos taupe/marrón medio en vez de negro casi
+   puro, con tres niveles de claridad bien diferenciados (fondo < tarjeta <
+   campo) para que los inputs se distingan de la tarjeta que los contiene. */
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #e5e3df;
-    --text-secondary: #a5a19c;
-    --bg: #1c1b19;
-    --surface: #262421;
-    --border: #3a3733;
-    --accent: #3fbf9a;
-    --accent-contrast: #0f2620;
-    --danger: #f09595;
-    --danger-bg: #3a1c1c;
+    --text: #f2ede4;
+    --text-secondary: #beb6a8;
+    --bg: #33302b;
+    --surface: #423e37;
+    --input-bg: #524d43;
+    --border: #6b6459;
+    --accent: #4ecca3;
+    --accent-contrast: #12261f;
+    --danger: #f0a8a2;
+    --danger-bg: #5c332f;
   }
 }
 
@@ -55,19 +60,25 @@ p {
 }
 
 input,
+select,
+textarea,
 button {
   font: inherit;
 }
 
-input {
+input,
+select,
+textarea {
   padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--surface);
+  background: var(--input-bg);
   color: var(--text);
 }
 
-input:focus {
+input:focus,
+select:focus,
+textarea:focus {
   outline: 2px solid var(--accent);
   outline-offset: -1px;
 }
@@ -80,4 +91,17 @@ button {
 button:disabled {
   cursor: default;
   opacity: 0.6;
+}
+
+/* En mobile, los combos/inputs nativos quedan muy chicos con el estilo por
+   defecto: se agranda el touch target y se sube el font-size a 16px para que
+   iOS no haga zoom automático al enfocarlos. */
+@media (max-width: 720px) {
+  input,
+  select,
+  textarea {
+    padding: 11px 12px;
+    font-size: 16px;
+    min-height: 44px;
+  }
 }

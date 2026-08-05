@@ -2,24 +2,18 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { MovimientoCajaForm } from '../components/MovimientoCajaForm'
 import { formatearArs, formatearUsd, formatearFecha } from '../lib/formato'
+import { calcularLiquidez } from '../lib/liquidez'
 import './Caja.css'
 
 function formatearMonto(monto, moneda) {
   return moneda === 'ARS' ? formatearArs(monto) : formatearUsd(monto)
 }
 
-function calcularSaldos(movimientos) {
-  const saldos = { ARS: 0, USD: 0 }
-  for (const m of movimientos) {
-    const signo = m.tipo === 'deposito' ? 1 : -1
-    saldos[m.moneda] += signo * m.monto
-  }
-  return saldos
-}
-
 export function Caja() {
   const [estado, setEstado] = useState({ cargando: true, error: null })
   const [movimientos, setMovimientos] = useState([])
+  const [operaciones, setOperaciones] = useState([])
+  const [cobros, setCobros] = useState([])
   const [formAbierto, setFormAbierto] = useState(false)
   const [movimientoEditando, setMovimientoEditando] = useState(null)
   const [confirmandoId, setConfirmandoId] = useState(null)
@@ -34,9 +28,17 @@ export function Caja() {
   async function cargar() {
     setEstado({ cargando: true, error: null })
     try {
-      const { data, error } = await supabase.from('movimientos_caja').select('*').order('fecha', { ascending: false })
-      if (error) throw error
-      setMovimientos(data)
+      const [{ data: mov, error: movError }, { data: ops, error: opError }, { data: cob, error: cobError }] = await Promise.all([
+        supabase.from('movimientos_caja').select('*').order('fecha', { ascending: false }),
+        supabase.from('operaciones').select('tipo_operacion, monto, moneda, carga_historica'),
+        supabase.from('cobros').select('monto, moneda'),
+      ])
+      if (movError) throw movError
+      if (opError) throw opError
+      if (cobError) throw cobError
+      setMovimientos(mov)
+      setOperaciones(ops)
+      setCobros(cob)
       setEstado({ cargando: false, error: null })
     } catch (err) {
       setEstado({ cargando: false, error: err.message })
@@ -51,7 +53,7 @@ export function Caja() {
     })
   }, [movimientos, filtroTipo, filtroMoneda])
 
-  const saldos = calcularSaldos(movimientos)
+  const liquidez = calcularLiquidez({ movimientosCaja: movimientos, operaciones, cobros })
 
   function abrirAlta() {
     setMovimientoEditando(null)
@@ -104,12 +106,12 @@ export function Caja() {
 
       <div className="saldos-grid">
         <div className="saldo-card">
-          <p>Saldo ARS</p>
-          <p>{formatearArs(saldos.ARS)}</p>
+          <p>Líquido ARS</p>
+          <p>{formatearArs(liquidez.ARS)}</p>
         </div>
         <div className="saldo-card">
-          <p>Saldo USD</p>
-          <p>{formatearUsd(saldos.USD)}</p>
+          <p>Líquido USD</p>
+          <p>{formatearUsd(liquidez.USD)}</p>
         </div>
       </div>
 

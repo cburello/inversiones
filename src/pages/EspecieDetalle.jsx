@@ -6,12 +6,22 @@ import { calcularPosicion } from '../lib/valuacion'
 import { formatearArs, formatearUsd, formatearFecha, formatearPct, formatearCantidad } from '../lib/formato'
 import { etiquetaTipo } from '../components/SelectorEspecie'
 import { GraficoPrecio } from '../components/GraficoPrecio'
+import { OperacionForm } from '../components/OperacionForm'
 import './EspecieDetalle.css'
+
+function IconoOperar() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 3 4 7l4 4M4 7h13a3 3 0 0 1 3 3v1M16 21l4-4-4-4M20 17H7a3 3 0 0 1-3-3v-1" />
+    </svg>
+  )
+}
 
 export function EspecieDetalle() {
   const { id } = useParams()
   const [estado, setEstado] = useState({ cargando: true, error: null })
   const [datos, setDatos] = useState(null)
+  const [formAbierto, setFormAbierto] = useState(false)
 
   useEffect(() => {
     cargar()
@@ -76,11 +86,21 @@ export function EspecieDetalle() {
 
   const { especie, operaciones, cobros, historialPrecios, posicion } = datos
 
+  function alGuardarOperacion() {
+    setFormAbierto(false)
+    cargar()
+  }
+
   return (
     <div className="especie-detalle">
-      <Link to="/" className="volver-link">
-        ← Volver al dashboard
-      </Link>
+      <div className="especie-detalle-nav">
+        <Link to="/" className="volver-link">
+          ← Volver al dashboard
+        </Link>
+        <button className="boton-operar" onClick={() => setFormAbierto(true)}>
+          <IconoOperar /> Nueva operación
+        </button>
+      </div>
 
       <div className="especie-detalle-header">
         <div>
@@ -175,6 +195,10 @@ export function EspecieDetalle() {
           </table>
         )}
       </section>
+
+      {formAbierto && (
+        <OperacionForm especies={[especie]} especiePreseleccionada={especie} onGuardar={alGuardarOperacion} onCancelar={() => setFormAbierto(false)} />
+      )}
     </div>
   )
 }

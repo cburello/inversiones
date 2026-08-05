@@ -187,6 +187,26 @@
   flex: 1;
 }
 
+.ayuda-campo {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.checkbox-linea {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 14px;
+}
+
+.checkbox-linea input {
+  width: auto;
+  min-height: 0;
+}
+
 .form-error {
   font-size: 13px;
   color: var(--danger);
@@ -212,12 +232,6 @@
   font-weight: 500;
 }
 
-/* En desktop se ven los tres pasos juntos y se ocultan los botones de navegación entre pasos */
-@media (min-width: 640px) {
-  .paso-seccion {
-    display: block !important;
-  }
-  .paso-nav {
-    display: none;
-  }
-}
+/* El formulario se muestra paso a paso (1 a la vez) en cualquier tamaño de
+   pantalla: mostrar los 3 pasos juntos hacía que el modal no entrara en la
+   ventana y obligaba a scrollear con el mouse para llegar a "Guardar". */

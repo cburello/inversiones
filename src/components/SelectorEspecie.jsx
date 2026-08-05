@@ -214,7 +214,7 @@ export function SelectorEspecie({ especies, esEdicion, especieFija, onCambio }) 
     setMonedaCotizacionNueva(detectarMonedaFci(fondo.fondo))
   }
 
-  if (esEdicion) {
+  if (esEdicion || especieFija) {
     return (
       <p className="especie-fija">
         {especieFija?.ticker} · {etiquetaTipo(especieFija?.tipo)}

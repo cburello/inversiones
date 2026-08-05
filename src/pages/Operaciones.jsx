@@ -24,10 +24,12 @@ export function Operaciones() {
   const [operacionEditando, setOperacionEditando] = useState(null)
   const [confirmandoId, setConfirmandoId] = useState(null)
 
+  const [filtroTipoEspecie, setFiltroTipoEspecie] = useState('todas')
   const [filtroEspecieId, setFiltroEspecieId] = useState('todas')
   const [filtroTipoOperacion, setFiltroTipoOperacion] = useState('todas')
   const [filtroDesde, setFiltroDesde] = useState('')
   const [filtroHasta, setFiltroHasta] = useState('')
+  const [orden, setOrden] = useState({ campo: 'fecha', asc: false })
 
   useEffect(() => {
     cargar()
@@ -53,18 +55,35 @@ export function Operaciones() {
 
   const especiesConOperaciones = useMemo(() => {
     const idsUsados = new Set(operaciones.map((o) => o.especie_id))
-    return especies.filter((e) => idsUsados.has(e.id))
-  }, [operaciones, especies])
+    return especies.filter((e) => idsUsados.has(e.id) && (filtroTipoEspecie === 'todas' || e.tipo === filtroTipoEspecie))
+  }, [operaciones, especies, filtroTipoEspecie])
+
+  function cambiarFiltroTipoEspecie(tipo) {
+    setFiltroTipoEspecie(tipo)
+    setFiltroEspecieId('todas')
+  }
+
+  function cambiarOrden(campo) {
+    setOrden((actual) => (actual.campo === campo ? { campo, asc: !actual.asc } : { campo, asc: campo === 'ticker' }))
+  }
 
   const operacionesFiltradas = useMemo(() => {
-    return operaciones.filter((op) => {
-      if (filtroEspecieId !== 'todas' && op.especie_id !== filtroEspecieId) return false
-      if (filtroTipoOperacion !== 'todas' && op.tipo_operacion !== filtroTipoOperacion) return false
-      if (filtroDesde && op.fecha < filtroDesde) return false
-      if (filtroHasta && op.fecha > filtroHasta) return false
-      return true
-    })
-  }, [operaciones, filtroEspecieId, filtroTipoOperacion, filtroDesde, filtroHasta])
+    return operaciones
+      .filter((op) => {
+        if (filtroTipoEspecie !== 'todas' && op.especies?.tipo !== filtroTipoEspecie) return false
+        if (filtroEspecieId !== 'todas' && op.especie_id !== filtroEspecieId) return false
+        if (filtroTipoOperacion !== 'todas' && op.tipo_operacion !== filtroTipoOperacion) return false
+        if (filtroDesde && op.fecha < filtroDesde) return false
+        if (filtroHasta && op.fecha > filtroHasta) return false
+        return true
+      })
+      .slice()
+      .sort((a, b) => {
+        const comparacion =
+          orden.campo === 'ticker' ? (a.especies?.ticker ?? '').localeCompare(b.especies?.ticker ?? '') : a.fecha.localeCompare(b.fecha)
+        return orden.asc ? comparacion : -comparacion
+      })
+  }, [operaciones, filtroTipoEspecie, filtroEspecieId, filtroTipoOperacion, filtroDesde, filtroHasta, orden])
 
   function abrirAlta() {
     setOperacionEditando(null)
@@ -116,6 +135,14 @@ export function Operaciones() {
       {estado.error && <p className="negativo">{estado.error}</p>}
 
       <div className="filtros">
+        <select value={filtroTipoEspecie} onChange={(e) => cambiarFiltroTipoEspecie(e.target.value)}>
+          <option value="todas">Todos los instrumentos</option>
+          {Object.entries(ETIQUETA_TIPO).map(([tipo, etiqueta]) => (
+            <option key={tipo} value={tipo}>
+              {etiqueta}
+            </option>
+          ))}
+        </select>
         <select value={filtroEspecieId} onChange={(e) => setFiltroEspecieId(e.target.value)}>
           <option value="todas">Todas las especies</option>
           {especiesConOperaciones.map((e) => (
@@ -132,6 +159,16 @@ export function Operaciones() {
         <input type="date" value={filtroDesde} onChange={(e) => setFiltroDesde(e.target.value)} />
         <span className="filtros-separador">a</span>
         <input type="date" value={filtroHasta} onChange={(e) => setFiltroHasta(e.target.value)} />
+      </div>
+
+      <div className="orden-controles">
+        <span className="orden-etiqueta">Ordenar por:</span>
+        <button className={orden.campo === 'fecha' ? 'activo' : ''} onClick={() => cambiarOrden('fecha')}>
+          Fecha {orden.campo === 'fecha' && (orden.asc ? '↑' : '↓')}
+        </button>
+        <button className={orden.campo === 'ticker' ? 'activo' : ''} onClick={() => cambiarOrden('ticker')}>
+          Ticker {orden.campo === 'ticker' && (orden.asc ? '↑' : '↓')}
+        </button>
       </div>
 
       {operacionesFiltradas.length === 0 && <p>No hay operaciones que coincidan con los filtros.</p>}

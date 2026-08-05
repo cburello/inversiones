@@ -9,7 +9,27 @@
   font-size: 13px;
   color: var(--text-secondary);
   text-decoration: none;
+}
+
+.especie-detalle-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
   margin-bottom: 1rem;
+}
+
+.boton-operar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border: none;
+  font-weight: 500;
+  font-size: 13px;
+  padding: 7px 14px;
 }
 
 .especie-detalle-header {
@@ -99,13 +119,13 @@
 }
 
 .chip-tipo.compra {
-  background: rgba(26, 122, 76, 0.15);
+  background: #e8dcc4;
   color: #1a7a4c;
 }
 
 .chip-tipo.venta {
-  background: rgba(163, 45, 45, 0.12);
-  color: var(--danger);
+  background: #e8dcc4;
+  color: #a32d2d;
 }
 
 .dato-secundario {
